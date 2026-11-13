@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import questionsData from '../../questions.json';
 import ProgressBar from '../../components/ProgressBar';
 import QuestionCard from '../../components/QuestionCard';
+import './styles.css';
 
 const STORAGE_KEY = 'az900-progress';
 
 function Quiz() {
   const navigate = useNavigate();
-  const [activeQuestions, setActiveQuestions] = useState(questionsData);
+  const { topic } = useParams();
+  const decodedTopic = topic ? decodeURIComponent(topic) : null;
+  const initialQuestions = decodedTopic ? questionsData.filter(q => q.topic === decodedTopic) : questionsData;
+
+  const [activeQuestions, setActiveQuestions] = useState(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -32,109 +37,57 @@ function Quiz() {
   const toggleShuffle = () => {
     const newShuffleState = !isShuffleEnabled;
     setIsShuffleEnabled(newShuffleState);
-    if (newShuffleState) {
-      setActiveQuestions(shuffleArray(questionsData));
-    } else {
-      setActiveQuestions(questionsData);
-    }
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setIsAnswered(false);
-    setScore(0);
-    setIsFinished(false);
+    setActiveQuestions(newShuffleState ? shuffleArray(initialQuestions) : initialQuestions);
+    setCurrentIndex(0); setSelectedOption(null); setIsAnswered(false); setScore(0); setIsFinished(false);
   };
 
-  const handleSelect = (index) => {
-    if (!isAnswered) {
-      setSelectedOption(index);
-    }
-  };
+  const handleSelect = (index) => { if (!isAnswered) setSelectedOption(index); };
 
   const saveProgress = (question, wasCorrect) => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    let progress = {
-      totalAnswered: 0,
-      correct: 0,
-      incorrect: 0,
-      byTopic: {},
-    };
-    if (saved) {
-      try {
-        progress = JSON.parse(saved);
-      } catch (e) {}
-    }
-
+    let progress = saved ? JSON.parse(saved) : { totalAnswered: 0, correct: 0, incorrect: 0, byTopic: {} };
     progress.totalAnswered += 1;
-    if (wasCorrect) progress.correct += 1;
-    else progress.incorrect += 1;
-
-    const topic = question.topic || 'General';
-    if (!progress.byTopic[topic]) {
-      progress.byTopic[topic] = { total: 0, correct: 0 };
-    }
-    progress.byTopic[topic].total += 1;
-    if (wasCorrect) progress.byTopic[topic].correct += 1;
-
+    if (wasCorrect) progress.correct += 1; else progress.incorrect += 1;
+    const qTopic = question.topic || 'General';
+    if (!progress.byTopic[qTopic]) progress.byTopic[qTopic] = { total: 0, correct: 0 };
+    progress.byTopic[qTopic].total += 1;
+    if (wasCorrect) progress.byTopic[qTopic].correct += 1;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
   };
 
   const handleNext = () => {
     if (selectedOption === null) return;
-
     if (!isAnswered) {
-      const isCorrect = Array.isArray(currentQuestion.answer)
-        ? currentQuestion.answer.includes(selectedOption)
-        : currentQuestion.answer === selectedOption;
-
-      if (isCorrect) {
-        setScore(score + 1);
-      } else {
-        if (!mistakes.find((q) => q.id === currentQuestion.id)) {
-          setMistakes([...mistakes, currentQuestion]);
-        }
-      }
+      const isCorrect = Array.isArray(currentQuestion.answer) ? currentQuestion.answer.includes(selectedOption) : currentQuestion.answer === selectedOption;
+      if (isCorrect) setScore(score + 1);
+      else if (!mistakes.find((q) => q.id === currentQuestion.id)) setMistakes([...mistakes, currentQuestion]);
       saveProgress(currentQuestion, isCorrect);
       setIsAnswered(true);
       return;
     }
-
     if (currentIndex < activeQuestions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setSelectedOption(null);
-      setIsAnswered(false);
-    } else {
-      setIsFinished(true);
-    }
+      setCurrentIndex(currentIndex + 1); setSelectedOption(null); setIsAnswered(false);
+    } else { setIsFinished(true); }
   };
 
-  const handleBack = () => {
-    if (currentIndex > 0 && !isAnswered) {
-      setCurrentIndex(currentIndex - 1);
-      setSelectedOption(null);
-    }
-  };
+  const handleBack = () => { if (currentIndex > 0 && !isAnswered) { setCurrentIndex(currentIndex - 1); setSelectedOption(null); } };
 
   const startReviewMode = () => {
     if (mistakes.length === 0) return;
-    setActiveQuestions(mistakes);
-    setIsReviewMode(true);
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setIsAnswered(false);
-    setScore(0);
-    setIsFinished(false);
+    setActiveQuestions(mistakes); setIsReviewMode(true); setCurrentIndex(0); setSelectedOption(null); setIsAnswered(false); setScore(0); setIsFinished(false);
   };
 
   const handleRestart = () => {
-    setActiveQuestions(isShuffleEnabled ? shuffleArray(questionsData) : questionsData);
-    setIsReviewMode(false);
-    setMistakes([]);
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setIsAnswered(false);
-    setScore(0);
-    setIsFinished(false);
+    setActiveQuestions(isShuffleEnabled ? shuffleArray(initialQuestions) : initialQuestions);
+    setIsReviewMode(false); setMistakes([]); setCurrentIndex(0); setSelectedOption(null); setIsAnswered(false); setScore(0); setIsFinished(false);
   };
+
+  if (activeQuestions.length === 0) return (
+    <div className="app-container" style={{textAlign: 'center', padding: '60px 24px'}}>
+      <h2>No questions found for this topic.</h2>
+      <button className="btn-primary" style={{marginTop: '20px'}} onClick={() => navigate('/')}>Go Back</button>
+    </div>
+  );
 
   if (isFinished) {
     const percentage = Math.round((score / activeQuestions.length) * 100);
@@ -143,24 +96,12 @@ function Quiz() {
         <h1>{isReviewMode ? 'Review Complete' : 'Quiz Complete'}</h1>
         <div className="results-score">{score} / {activeQuestions.length}</div>
         <div className="results-message">
-          {percentage >= 80
-            ? 'Excellent work. You are well prepared for the AZ-900 exam.'
-            : percentage >= 70
-            ? 'Good performance. Review the explanations for questions you missed.'
-            : 'Continue studying. Focus on the areas where you struggled.'}
+          {percentage >= 80 ? 'Excellent work. You are well prepared for the AZ-900 exam.' : percentage >= 70 ? 'Good performance. Review the explanations for questions you missed.' : 'Continue studying. Focus on the areas where you struggled.'}
         </div>
         <div className="results-actions">
-          {mistakes.length > 0 && !isReviewMode && (
-            <button className="btn-review" onClick={startReviewMode}>
-              Review {mistakes.length} Mistakes
-            </button>
-          )}
-          <button className="btn-restart" onClick={handleRestart}>
-            Restart Quiz
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/dashboard')}>
-            View Dashboard
-          </button>
+          {mistakes.length > 0 && !isReviewMode && <button className="btn-review" onClick={startReviewMode}>Review {mistakes.length} Mistakes</button>}
+          <button className="btn-restart" onClick={handleRestart}>Restart Quiz</button>
+          <button className="btn-secondary" onClick={() => navigate('/dashboard')}>View Dashboard</button>
         </div>
       </div>
     );
@@ -169,54 +110,23 @@ function Quiz() {
   return (
     <div className="quiz-container">
       <header className="quiz-header">
-        <button className="btn-back" onClick={() => navigate('/')}>
-          <span className="arrow">←</span> Back
-        </button>
+        <button className="btn-back" onClick={() => navigate('/')}><span className="arrow">←</span> Back</button>
         <div className="controls-container">
-          <label className="shuffle-toggle">
-            <input
-              type="checkbox"
-              checked={isShuffleEnabled}
-              onChange={toggleShuffle}
-            />
-            Shuffle Questions
-          </label>
-          {isReviewMode && (
-            <span className="review-badge">Reviewing Mistakes</span>
-          )}
+          <label className="shuffle-toggle"><input type="checkbox" checked={isShuffleEnabled} onChange={toggleShuffle} /> Shuffle Questions</label>
+          {isReviewMode && <span className="review-badge">Reviewing Mistakes</span>}
+          {decodedTopic && !isReviewMode && <span className="review-badge">Domain: {decodedTopic}</span>}
         </div>
       </header>
-
       <ProgressBar currentIndex={currentIndex} totalQuestions={activeQuestions.length} />
-
       <div className="question-counter">
         <div className="counter-line"></div>
         <div className="counter-text">Question {currentIndex + 1} of {activeQuestions.length}</div>
         <div className="counter-line"></div>
       </div>
-
-      <QuestionCard
-        question={currentQuestion}
-        selectedOption={selectedOption}
-        isAnswered={isAnswered}
-        onSelect={handleSelect}
-      />
-
+      <QuestionCard question={currentQuestion} selectedOption={selectedOption} isAnswered={isAnswered} onSelect={handleSelect} />
       <div className="navigation">
-        <button
-          className="btn-back-nav"
-          onClick={handleBack}
-          disabled={currentIndex === 0 || isAnswered}
-        >
-          <span className="arrow">←</span> Back
-        </button>
-        <button
-          className="btn-next"
-          onClick={handleNext}
-          disabled={selectedOption === null}
-        >
-          {isAnswered && currentIndex === activeQuestions.length - 1 ? 'Finish' : 'Next'}
-        </button>
+        <button className="btn-back-nav" onClick={handleBack} disabled={currentIndex === 0 || isAnswered}><span className="arrow">←</span> Back</button>
+        <button className="btn-next" onClick={handleNext} disabled={selectedOption === null}>{isAnswered && currentIndex === activeQuestions.length - 1 ? 'Finish' : 'Next'}</button>
       </div>
     </div>
   );
