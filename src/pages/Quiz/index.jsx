@@ -6,11 +6,17 @@ import Navigator from '../../components/Navigator';
 import ProgressBar from '../../components/ProgressBar';
 import { Empty } from '../../components/ui';
 import { isCorrect, summarize, formatClock } from '../../lib/testEngine';
-import { IconArrowLeft, IconArrowRight, IconCheck, IconClock, IconPause, IconPlay, IconGrid, IconCross } from '../../components/Icons';
+import {
+  IconArrowLeft, IconArrowRight, IconCheck, IconClock,
+  IconPause, IconPlay, IconGrid, IconCross
+} from '../../components/Icons';
 
 export default function Quiz() {
   const navigate = useNavigate();
   const { bank, session, setSession, commitResult, bookmarks, toggleBookmark } = useApp();
+
+  const test = session && session.test ? session.test : null;
+  const items = useMemo(() => (test && Array.isArray(test.items) ? test.items : []), [test]);
 
   const [answers, setAnswers] = useState(() => (session && session.answers) || {});
   const [revealed, setRevealed] = useState(() => (session && session.revealed) || []);
@@ -20,37 +26,63 @@ export default function Quiz() {
   const [paused, setPaused] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [confirming, setConfirming] = useState(false);
+
+  const startedAtRef = useRef(session && session.startedAt ? session.startedAt : Date.now());
   const submittingRef = useRef(false);
 
-  const test = session && session.test;
-  const items = test ? test.items : [];
-  const item = items[index];
+  const item = items[index] || null;
+  const selected = useMemo(() => (item ? answers[item.uid] || [] : []), [item, answers]);
+  const isRevealed = item ? revealed.indexOf(item.uid) !== -1 : false;
   const examMode = test ? test.mode === 'exam' : false;
-  const instant = test ? test.instantFeedback : true;
+  const instant = test ? Boolean(test.instantFeedback) : true;
   const limitMs = test && test.timerMinutes ? test.timerMinutes * 60000 : 0;
   const remaining = limitMs ? Math.max(0, limitMs - elapsed) : 0;
+  const answeredCount = useMemo(
+    () => items.reduce((n, q) => n + ((answers[q.uid] || []).length > 0 ? 1 : 0), 0),
+    [items, answers]
+  );
 
-  const selected = item ? answers[item.uid] || [] : [];
-  const isRevealed = item ? revealed.includes(item.uid) : false;
-  const answeredCount = useMemo(() => items.filter((q) => (answers[q.uid] || []).length > 0).length, [items, answers]);
+  const liveRef = useRef(null);
+  liveRef.current = { test, answers, revealed, flagged, index, elapsed };
+
+  const persist = useCallback(() => {
+    const s = liveRef.current;
+    if (!s || !s.test || submittingRef.current) return;
+    setSession({
+      test: s.test,
+      answers: s.answers,
+      revealed: s.revealed,
+      flagged: s.flagged,
+      index: s.index,
+      elapsedMs: s.elapsed,
+      paused: false,
+      startedAt: startedAtRef.current
+    });
+  }, [setSession]);
 
   useEffect(() => {
     if (!test) navigate('/', { replace: true });
   }, [test, navigate]);
 
   useEffect(() => {
+    if (!test) return undefined;
+    const id = window.setTimeout(persist, 300);
+    return () => window.clearTimeout(id);
+  }, [test, answers, revealed, flagged, index, persist]);
+
+  useEffect(() => {
+    if (!test) return undefined;
+    const id = window.setInterval(persist, 10000);
+    return () => window.clearInterval(id);
+  }, [test, persist]);
+
+  useEffect(() => persist, [persist]);
+
+  useEffect(() => {
     if (!test || paused || confirming) return undefined;
     const id = window.setInterval(() => setElapsed((e) => e + 1000), 1000);
     return () => window.clearInterval(id);
   }, [test, paused, confirming]);
-
-  useEffect(() => {
-    if (!test) return undefined;
-    const id = window.setTimeout(() => {
-      setSession({ test, answers, revealed, flagged, index, elapsedMs: elapsed, paused: false, startedAt: session ? session.startedAt : Date.now() });
-    }, 350);
-    return () => window.clearTimeout(id);
-  }, [test, answers, revealed, flagged, index, elapsed, setSession, session]);
 
   const submit = useCallback(() => {
     if (!test || submittingRef.current) return;
@@ -72,31 +104,43 @@ export default function Quiz() {
     if (limitMs && remaining <= 0) submit();
   }, [limitMs, remaining, submit]);
 
-  const toggleOption = (i) => {
+  const toggleOption = useCallback((i) => {
     if (!item || isRevealed) return;
     setAnswers((prev) => {
       const current = prev[item.uid] || [];
       let next;
-      if (item.multi) next = current.includes(i) ? current.filter((x) => x !== i) : current.concat(i).sort((a, b) => a - b);
-      else next = [i];
+      if (item.multi) {
+        next = current.indexOf(i) !== -1
+          ? current.filter((x) => x !== i)
+          : current.concat(i).sort((a, b) => a - b);
+      } else {
+        next = [i];
+      }
       return { ...prev, [item.uid]: next };
     });
-  };
+  }, [item, isRevealed]);
 
-  const check = () => {
+  const check = useCallback(() => {
     if (!item || !selected.length || isRevealed) return;
-    setRevealed((prev) => (prev.includes(item.uid) ? prev : prev.concat(item.uid)));
-  };
+    setRevealed((prev) => (prev.indexOf(item.uid) !== -1 ? prev : prev.concat(item.uid)));
+  }, [item, selected, isRevealed]);
 
-  const go = (next) => {
+  const go = useCallback((next) => {
     if (!items.length) return;
     setIndex(Math.min(items.length - 1, Math.max(0, next)));
     setShowNav(false);
-  };
+  }, [items.length]);
+
+  const flag = useCallback(() => {
+    if (!item) return;
+    setFlagged((prev) => (prev.indexOf(item.uid) !== -1
+      ? prev.filter((x) => x !== item.uid)
+      : prev.concat(item.uid)));
+  }, [item]);
 
   useEffect(() => {
     const onKey = (e) => {
-      if (!item || confirming) return;
+      if (!item || confirming || paused) return;
       const tag = (e.target && e.target.tagName) || '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key >= '1' && e.key <= '6') {
@@ -106,24 +150,35 @@ export default function Quiz() {
         e.preventDefault();
         if (instant && !isRevealed && selected.length) check();
         else if (index < items.length - 1) go(index + 1);
-      } else if (e.key === 'ArrowRight') { go(index + 1); }
-      else if (e.key === 'ArrowLeft') { go(index - 1); }
-      else if (e.key.toLowerCase() === 'f') { setFlagged((p) => (p.includes(item.uid) ? p.filter((x) => x !== item.uid) : p.concat(item.uid))); }
+      } else if (e.key === 'ArrowRight') {
+        go(index + 1);
+      } else if (e.key === 'ArrowLeft') {
+        go(index - 1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        flag();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  });
+  }, [item, confirming, paused, instant, isRevealed, selected, index, items.length, toggleOption, check, go, flag]);
 
-  if (!test || !item) {
+  if (!test) return null;
+
+  if (!item) {
     return (
       <div className="page">
-        <Empty title="No test running" body="Start a topic test or the full mock exam from the study page." action={<button className="btn btn-primary" onClick={() => navigate('/')}>Back to study</button>} />
+        <Empty
+          title="This test has no questions"
+          body="The selected topic returned an empty set. Pick another topic or run the full bank."
+          action={<button type="button" className="btn btn-primary" onClick={() => navigate('/')}>Back to study</button>}
+        />
       </div>
     );
   }
 
+  const bankItem = bank.byId.get(item.uid);
+  const explanation = bankItem ? bankItem.explanation : '';
   const correct = isRevealed ? isCorrect(item, selected) : false;
-  const explanation = bank.byId.get(item.uid) ? bank.byId.get(item.uid).explanation : '';
   const isLast = index === items.length - 1;
 
   return (
@@ -146,7 +201,13 @@ export default function Quiz() {
           <button type="button" className="icon-btn" onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Resume clock' : 'Pause clock'}>
             {paused ? <IconPlay width={16} height={16} /> : <IconPause width={16} height={16} />}
           </button>
-          <button type="button" className={'icon-btn nav-toggle' + (showNav ? ' is-on' : '')} onClick={() => setShowNav((s) => !s)} aria-label="Toggle question navigator">
+          <button
+            type="button"
+            className={'icon-btn nav-toggle' + (showNav ? ' is-on' : '')}
+            onClick={() => setShowNav((s) => !s)}
+            aria-label="Toggle question navigator"
+            aria-pressed={showNav}
+          >
             <IconGrid width={16} height={16} />
           </button>
         </div>
@@ -160,7 +221,9 @@ export default function Quiz() {
             <div className="paused">
               <h2>Paused</h2>
               <p>The clock is stopped. Your answers are saved.</p>
-              <button type="button" className="btn btn-primary" onClick={() => setPaused(false)}><IconPlay width={16} height={16} /> Resume</button>
+              <button type="button" className="btn btn-primary" onClick={() => setPaused(false)}>
+                <IconPlay width={16} height={16} /> Resume
+              </button>
             </div>
           ) : (
             <QuestionCard
@@ -171,9 +234,9 @@ export default function Quiz() {
               onToggle={toggleOption}
               revealed={isRevealed}
               correct={correct}
-              flagged={flagged.includes(item.uid)}
-              onFlag={() => setFlagged((p) => (p.includes(item.uid) ? p.filter((x) => x !== item.uid) : p.concat(item.uid)))}
-              bookmarked={bookmarks.includes(item.uid)}
+              flagged={flagged.indexOf(item.uid) !== -1}
+              onFlag={flag}
+              bookmarked={bookmarks.indexOf(item.uid) !== -1}
               onBookmark={() => toggleBookmark(item.uid)}
               explanation={explanation}
             />
@@ -183,7 +246,6 @@ export default function Quiz() {
             <button type="button" className="btn btn-ghost" onClick={() => go(index - 1)} disabled={index === 0}>
               <IconArrowLeft width={16} height={16} /> Previous
             </button>
-
             <div className="quiz-actions-right">
               {instant && !isRevealed ? (
                 <button type="button" className="btn btn-primary" onClick={check} disabled={!selected.length}>
@@ -195,9 +257,7 @@ export default function Quiz() {
                   Next <IconArrowRight width={16} height={16} />
                 </button>
               ) : (
-                <button type="button" className="btn btn-primary" onClick={() => setConfirming(true)}>
-                  Finish test
-                </button>
+                <button type="button" className="btn btn-primary" onClick={() => setConfirming(true)}>Finish test</button>
               )}
               <button type="button" className="btn btn-outline" onClick={() => setConfirming(true)}>Submit now</button>
             </div>
