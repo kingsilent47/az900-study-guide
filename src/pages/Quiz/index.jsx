@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ProgressBar from '../../components/ProgressBar';
 import bank from '../../questions.json';
@@ -156,7 +156,10 @@ export default function Quiz() {
   live.current = { order, answers, revealed, flagged, index, elapsed, instant, topic, startedAt: startedAt.current };
 
   const item = order[index] || null;
-  const selected = item ? answers[item.uid] || [] : [];
+  const selected = useMemo(() => {
+    if (!item) return [];
+    return answers[item.uid] || [];
+  }, [item, answers]);
   const isRevealed = item ? revealed.indexOf(item.uid) !== -1 : false;
   const answeredCount = order.reduce((n, q) => n + ((answers[q.uid] || []).length ? 1 : 0), 0);
 
