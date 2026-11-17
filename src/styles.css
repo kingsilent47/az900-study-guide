@@ -202,3 +202,43 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--surfa
   .hero-actions, .resume-actions, .builder-col .btn-block { flex-direction: column; }
   .btn-block, .hero-actions .btn, .resume-actions .btn { width: 100%; }
 }
+/* Fix squashed topic card text (e.g. "Cloud conceptsno data") */
+.dbar-head {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 12px;
+}
+
+/* Fix squashed toggle text (e.g. "Shuffle answer optionsQuestion order...") */
+.toggle-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+/* Fix squashed Test History headers (e.g. "TestModeScoreTimeDate") */
+.hhead {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto !important;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Remove gradients from buttons to look less "vibe-coded" */
+.btn-primary {
+  background: var(--orange) !important; /* Solid orange, no gradient */
+  box-shadow: none !important;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #ea580c !important; /* Slightly darker orange on hover */
+  box-shadow: none !important;
+}
+
+/* Ensure topic card bottom border is solid, not a gradient */
+.topic::after {
+  background: var(--hue) !important;
+  height: 3px;
+}
