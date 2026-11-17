@@ -17,11 +17,11 @@ html[data-theme='day']{
   --track:#e7ecf3; --mesh-a:rgba(47,129,247,.16); --mesh-b:rgba(14,165,183,.14); --mesh-c:rgba(249,115,22,.16);
 }
 html[data-theme='night']{
-  --bg:#050e1c; --bg-2:#08172b; --surface:#0d2036; --surface-2:#122a44; --overlay:rgba(2,8,18,.66);
-  --ink:#eaf2ff; --ink-2:#a8bdd6; --ink-3:#7590ad; --line:#1c3category; --line:#1c3550; --line-2:#274766;
-  --track:#16304c; --mesh-a:rgba(47,129,247,.30); --mesh-b:rgba(14,165,183,.22); --mesh-c:rgba(249,115,22,.20);
-  --shadow-1:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.34);
-  --shadow-2:0 24px 60px rgba(0,0,0,.5);
+  --bg:#050e1c;--bg2:#08172b;--surface:#0d2036;--surface2:#122a44;--overlay:rgba(2,8,18,.68);
+  --ink:#eaf2ff;--ink2:#a8bdd6;--ink3:#7590ad;--line:#1c3550;--line2:#274766;--track:#16304c;
+  --ma:rgba(47,129,247,.30);--mb:rgba(14,165,183,.22);--mc:rgba(249,115,22,.20);
+  --sh1:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.34);
+  --sh2:0 24px 60px rgba(0,0,0,.5);
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body,#root{height:100%}
