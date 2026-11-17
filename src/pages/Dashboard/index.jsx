@@ -1,79 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import questionsData from '../../questions.json';
-import './styles.css';
+import React, { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useApp } from '../../state/AppState';
+import { DOMAINS } from '../../data/domains';
+import { createTest, formatDuration } from '../../lib/testEngine';
+import { domainMastery, weakUids, studyStreak, downloadJson } from '../../lib/store';
+import { Stat, DomainBar, Sparkline, Reveal, Empty, DomainChip } from '../../components/ui';
+import { IconDownload, IconTrash, IconArrowRight } from '../../components/Icons';
 
-const STORAGE_KEY = 'az900-progress';
-
-function Dashboard() {
+export default function Dashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ totalAnswered: 0, correct: 0, incorrect: 0, byTopic: {} });
+  const { bank, stats, history, bookmarks, resetProgress, setSession } = useApp();
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try { setStats(JSON.parse(saved)); } catch (e) { console.error('Failed to parse progress'); }
-    }
-  }, []);
+  const mastery = useMemo(() => domainMastery(stats, bank), [stats, bank]);
+  const weak = useMemo(() => weakUids(stats, bank, 12), [stats, bank]);
+  const answered = useMemo(() => Object.values(stats).reduce((n, s) => n + s.a, 0), [stats]);
+  const correct = useMemo(() => Object.values(stats).reduce((n, s) => n + s.c, 0), [stats]);
+  const seen = useMemo(() => Object.keys(stats).filter((k) => stats[k].a > 0).length, [stats]);
+  const time = useMemo(() => history.reduce((n, h) => n + (h.summary.durationMs || 0), 0), [history]);
+  const trend = useMemo(() => history.slice(0, 10).map((h) => h.summary.percent).reverse(), [history]);
+  const streak = studyStreak(history);
+  const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
 
-  const accuracy = stats.totalAnswered > 0 ? Math.round((stats.correct / stats.totalAnswered) * 100) : 0;
-  const allTopics = [...new Set(questionsData.map(q => q.topic))];
-
-  const handleReset = () => {
-    if (window.confirm('Reset all progress? This cannot be undone.')) {
-      localStorage.removeItem(STORAGE_KEY);
-      setStats({ totalAnswered: 0, correct: 0, incorrect: 0, byTopic: {} });
-    }
+  const drill = (uids, title) => {
+    if (!uids.length) return;
+    const test = createTest({ bank, mode: 'practice', uids, count: uids.length, shuffleOptions: true, instantFeedback: true, title });
+    setSession({ test, answers: {}, revealed: [], flagged: [], index: 0, elapsedMs: 0, paused: false, startedAt: Date.now() });
+    navigate('/quiz');
   };
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <button className="btn-back" onClick={() => navigate('/')}><span className="arrow">←</span> Back</button>
-        <h1 className="dashboard-title">Dashboard</h1>
+    <div className="page dash">
+      <header className="page-head">
+        <div>
+          <span className="eyebrow">Progress</span>
+          <h1>Your AZ-900 readiness</h1>
+          <p className="lede">Every answer you submit is stored on this device and feeds the topic mastery, weak spot list and trend below.</p>
+        </div>
+        <div className="page-head-actions">
+          <button type="button" className="btn btn-outline" onClick={() => downloadJson('az900-progress.json', { stats, history, bookmarks })}>
+            <IconDownload width={16} height={16} /> Export
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={() => { if (window.confirm('Erase all answers, history and bookmarks on this device?')) resetProgress(); }}
+          >
+            <IconTrash width={16} height={16} /> Reset
+          </button>
+        </div>
       </header>
 
-      <div className="dashboard-overview">
-        <div className="overview-card"><div className="overview-label">Questions Answered</div><div className="overview-value">{stats.totalAnswered}</div></div>
-        <div className="overview-card"><div className="overview-label">Overall Accuracy</div><div className="overview-value">{accuracy}%</div></div>
-        <div className="overview-card"><div className="overview-label">Correct</div><div className="overview-value correct">{stats.correct}</div></div>
-        <div className="overview-card"><div className="overview-label">Incorrect</div><div className="overview-value incorrect">{stats.incorrect}</div></div>
+      <div className="dash-stats">
+        <Stat label="Overall accuracy" value={answered ? accuracy + '%' : 'no data'} sub={correct + ' of ' + answered + ' answers'} tone={accuracy >= 70 ? 'ok' : answered ? 'no' : undefined} />
+        <Stat label="Bank coverage" value={Math.round((seen / Math.max(1, bank.size)) * 100) + '%'} sub={seen + ' of ' + bank.size + ' questions seen'} />
+        <Stat label="Study streak" value={streak + (streak === 1 ? ' day' : ' days')} sub={history.length + ' tests completed'} />
+        <Stat label="Time on task" value={time ? formatDuration(time) : '0 min'} sub="from completed tests" />
       </div>
 
-      <div className="dashboard-actions">
-        <button className="btn-primary" onClick={() => navigate('/quiz')}>Start Full Quiz</button>
-        <button className="btn-danger" onClick={handleReset}>Reset Progress</button>
-      </div>
+      <section className="section dash-two">
+        <Reveal>
+          <div className="card">
+            <div className="card-head"><h2>Topic mastery</h2><span>accuracy over coverage</span></div>
+            <div className="dbar-list">
+              {DOMAINS.map((d) => (
+                <DomainBar key={d.id} id={d.id} accuracy={mastery[d.id].accuracy} coverage={mastery[d.id].coverage} attempts={mastery[d.id].attempts} />
+              ))}
+            </div>
+          </div>
+        </Reveal>
+        <Reveal delay={80}>
+          <div className="card">
+            <div className="card-head"><h2>Accuracy trend</h2><span>last {trend.length} tests</span></div>
+            <Sparkline points={trend} />
+            <div className="trend-foot">
+              {history.length ? (
+                <>
+                  <span>Latest {history[0].summary.percent}%</span>
+                  <span>Best {Math.max.apply(null, history.map((h) => h.summary.percent))}%</span>
+                </>
+              ) : <span>Finish a test to start the trend line.</span>}
+            </div>
+          </div>
+        </Reveal>
+      </section>
 
-      <div className="topic-breakdown">
-        <h2 className="section-heading">Progress by Exam Domain</h2>
-        <div className="topic-rows">
-          {allTopics.map((topic) => {
-            const data = stats.byTopic[topic] || { total: 0, correct: 0 };
-            const topicAccuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
-            return (
-              <div key={topic} className="topic-row" onClick={() => navigate(`/quiz/${encodeURIComponent(topic)}`)} style={{ cursor: 'pointer' }}>
-                <div className="topic-row-name">{topic}</div>
-                <div className="topic-row-stats">
-                  <span>{data.correct} / {data.total} answered</span>
-                  <span className="topic-row-accuracy">{topicAccuracy}% accuracy</span>
+      <section className="section">
+        <div className="section-head">
+          <h2>Weak spots</h2>
+          <p>Questions you answer correctly less than 75 percent of the time.</p>
+          {weak.length ? (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => drill(weak, 'Weak spot drill')}>
+              Drill these {weak.length} <IconArrowRight width={16} height={16} />
+            </button>
+          ) : null}
+        </div>
+        {weak.length ? (
+          <div className="weak-list">
+            {weak.map((uid) => {
+              const q = bank.byId.get(uid);
+              const st = stats[uid];
+              if (!q) return null;
+              return (
+                <div key={uid} className="weak">
+                  <DomainChip id={q.domain} small />
+                  <span className="weak-q">{q.question}</span>
+                  <span className="weak-rate">{Math.round((st.c / st.a) * 100)}% over {st.a}</span>
                 </div>
-                <div className="topic-row-bar">
-                  <div className="topic-row-fill" style={{ width: `${topicAccuracy}%` }}></div>
-                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <Empty title="No weak spots recorded" body="Answer questions in a test and anything you keep missing shows up here automatically." action={<Link className="btn btn-primary" to="/">Start a test</Link>} />
+        )}
+      </section>
+
+      <section className="section">
+        <div className="section-head"><h2>Test history</h2><p>Open any run to re-read its full breakdown.</p></div>
+        {history.length ? (
+          <div className="history">
+            <div className="history-row history-head">
+              <span>Test</span><span>Mode</span><span>Score</span><span>Time</span><span>Date</span><span />
+            </div>
+            {history.map((h) => (
+              <div key={h.id} className="history-row">
+                <span className="h-title">{h.title}</span>
+                <span className="h-mode">{h.mode === 'exam' ? 'Exam' : 'Practice'}</span>
+                <span className={'h-score ' + (h.summary.scaled >= 700 ? 'ok' : 'no')}>{h.summary.percent}%</span>
+                <span>{formatDuration(h.summary.durationMs)}</span>
+                <span className="h-date">{new Date(h.finishedAt).toLocaleDateString()}</span>
+                <Link className="btn btn-mini" to={'/review?id=' + h.id}>Open</Link>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {stats.totalAnswered === 0 && (
-        <div className="empty-state">
-          <p>No progress yet. Start a quiz to begin tracking your performance.</p>
-        </div>
-      )}
+            ))}
+          </div>
+        ) : (
+          <Empty title="No tests yet" body="Your completed runs will be listed here with scores, timing and a link back to the full review." action={<Link className="btn btn-primary" to="/">Start your first test</Link>} />
+        )}
+      </section>
     </div>
   );
 }
-
-export default Dashboard;
