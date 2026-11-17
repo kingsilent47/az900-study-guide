@@ -7,22 +7,8 @@ import { domainMastery, weakUids } from '../../lib/store';
 import { Reveal, Stat, DomainBar, Toggle } from '../../components/ui';
 import { IconArrowRight, IconShuffle, IconTarget, IconClock, IconFlag, IconBookmark } from '../../components/Icons';
 
-function readAccuracy() {
-  try {
-    const raw = window.localStorage.getItem('az900-progress');
-    if (!raw) return null;
-    const p = JSON.parse(raw);
-    if (!p || typeof p.totalAnswered !== 'number' || p.totalAnswered < 1) return null;
-    const correct = typeof p.correct === 'number' ? p.correct : 0;
-    return Math.round((correct / p.totalAnswered) * 100);
-  } catch (err) {
-    return null;
-  }
-}
-
 export default function Welcome() {
   const navigate = useNavigate();
-  const accuracy = readAccuracy();
   const { bank, ready, settings, setSettings, stats, history, bookmarks, session, setSession } = useApp();
   const [length, setLength] = useState(settings.practiceLength || 40);
   const [picked, setPicked] = useState(DOMAINS.map((d) => d.id));
@@ -36,6 +22,12 @@ export default function Welcome() {
   const accuracy = answeredTotal ? Math.round((correctTotal / answeredTotal) * 100) : 0;
   const poolSize = picked.reduce((n, id) => n + bank.byDomain[id].length, 0);
   const examShort = Math.max(0, EXAM_LENGTH - bank.size);
+  const sliderMax = Math.max(10, bank.size);
+  const sliderValue = Math.min(Math.max(5, length), sliderMax);
+  const lastMistakes = useMemo(
+    () => (history.length ? history[0].summary.rows.filter((r) => r.answered && !r.correct).map((r) => r.uid) : []),
+    [history]
+  );
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -52,7 +44,10 @@ export default function Welcome() {
       });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); if (frame) window.cancelAnimationFrame(frame); };
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, []);
 
   const launch = (config) => {
@@ -159,7 +154,7 @@ export default function Welcome() {
                     <div className="mix-track">
                       <span className="mix-fill" style={{ width: Math.min(100, (have / Math.max(1, want)) * 100) + '%' }} />
                     </div>
-                    <span className="mix-note">{d.note} · {have} in bank</span>
+                    <span className="mix-note">{d.note}, {have} in bank</span>
                   </li>
                 );
               })}
@@ -167,7 +162,10 @@ export default function Welcome() {
             {examShort > 0 ? (
               <div className="panel-alert">
                 <strong>{examShort} questions short of 501.</strong>
-                <span>Move your data files into <code>public/</code> or paste the PDF text on the Data page. The exam runs on everything available until then.</span>
+                <span>
+                  The exam runs on everything currently in <code>src/questions.json</code>. Paste more question text on the
+                  data page to close the gap, and every new item joins the next shuffle.
+                </span>
                 <Link className="btn btn-mini" to="/import">Open the data page</Link>
               </div>
             ) : (
@@ -182,7 +180,7 @@ export default function Welcome() {
           <div className="resume">
             <div>
               <strong>Test in progress: {session.test.title}</strong>
-              <span>{Object.keys(session.answers).length} of {session.test.count} answered · {formatDuration(session.elapsedMs)} elapsed</span>
+              <span>{Object.keys(session.answers).length} of {session.test.count} answered, {formatDuration(session.elapsedMs)} elapsed</span>
             </div>
             <div className="resume-actions">
               <button type="button" className="btn btn-primary" onClick={() => navigate('/quiz')}>Resume</button>
@@ -232,13 +230,13 @@ export default function Welcome() {
           <div className="builder">
             <div className="builder-col">
               <label className="field">
-                <span className="field-label">Length <b>{Math.min(length, Math.max(1, poolSize))}</b></span>
+                <span className="field-label">Length <b>{Math.min(sliderValue, Math.max(1, poolSize))}</b></span>
                 <input
                   type="range"
                   min={5}
-                  max={Math.max(10, bank.size)}
+                  max={sliderMax}
                   step={5}
-                  value={Math.min(length, Math.max(10, bank.size))}
+                  value={sliderValue}
                   onChange={(e) => setLength(Number(e.target.value))}
                 />
                 <span className="field-hint">{poolSize} questions match the selected topics.</span>
@@ -250,7 +248,7 @@ export default function Welcome() {
                   <option value={0}>Untimed practice</option>
                   <option value={15}>15 minutes</option>
                   <option value={30}>30 minutes</option>
-                  <option value={45}>45 minutes (real exam length)</option>
+                  <option value={45}>45 minutes, real exam length</option>
                   <option value={60}>60 minutes</option>
                   <option value={120}>120 minutes</option>
                 </select>
@@ -301,14 +299,24 @@ export default function Welcome() {
       <section className="section">
         <div className="quick-grid">
           <Reveal>
-            <button type="button" className="quick" onClick={() => launch({ mode: 'practice', uids: weak, count: weak.length, title: 'Weak spot drill', shuffleOptions: true, instantFeedback: true })} disabled={!weak.length}>
+            <button
+              type="button"
+              className="quick"
+              onClick={() => launch({ mode: 'practice', uids: weak, count: weak.length, title: 'Weak spot drill', shuffleOptions: true, instantFeedback: true })}
+              disabled={!weak.length}
+            >
               <IconTarget />
               <strong>Weak spot drill</strong>
               <span>{weak.length ? weak.length + ' questions you keep missing' : 'Answer questions to unlock this drill'}</span>
             </button>
           </Reveal>
           <Reveal delay={70}>
-            <button type="button" className="quick" onClick={() => launch({ mode: 'practice', uids: bookmarks, count: bookmarks.length, title: 'Bookmarked drill', shuffleOptions: true, instantFeedback: true })} disabled={!bookmarks.length}>
+            <button
+              type="button"
+              className="quick"
+              onClick={() => launch({ mode: 'practice', uids: bookmarks, count: bookmarks.length, title: 'Bookmarked drill', shuffleOptions: true, instantFeedback: true })}
+              disabled={!bookmarks.length}
+            >
               <IconBookmark />
               <strong>Bookmarked drill</strong>
               <span>{bookmarks.length ? bookmarks.length + ' saved questions' : 'Bookmark questions during a test'}</span>
@@ -318,15 +326,12 @@ export default function Welcome() {
             <button
               type="button"
               className="quick"
-              onClick={() => {
-                const rows = history.length ? history[0].summary.rows.filter((r) => r.answered && !r.correct).map((r) => r.uid) : [];
-                launch({ mode: 'practice', uids: rows, count: rows.length, title: 'Retry last mistakes', shuffleOptions: true, instantFeedback: true });
-              }}
-              disabled={!history.length || !history[0].summary.rows.some((r) => r.answered && !r.correct)}
+              onClick={() => launch({ mode: 'practice', uids: lastMistakes, count: lastMistakes.length, title: 'Retry last mistakes', shuffleOptions: true, instantFeedback: true })}
+              disabled={!lastMistakes.length}
             >
               <IconFlag />
               <strong>Retry last mistakes</strong>
-              <span>{history.length ? history[0].summary.incorrect + ' from your last test' : 'Finish a test to unlock'}</span>
+              <span>{lastMistakes.length ? lastMistakes.length + ' from your last test' : 'Finish a test to unlock'}</span>
             </button>
           </Reveal>
         </div>
