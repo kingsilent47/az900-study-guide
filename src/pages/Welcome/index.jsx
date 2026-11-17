@@ -19,7 +19,7 @@ export default function Welcome() {
   const weak = useMemo(() => weakUids(stats, bank, 30), [stats, bank]);
   const answeredTotal = useMemo(() => Object.values(stats).reduce((n, s) => n + s.a, 0), [stats]);
   const correctTotal = useMemo(() => Object.values(stats).reduce((n, s) => n + s.c, 0), [stats]);
-  const accuracy = answeredTotal ? Math.round((correctTotal / answeredTotal) * 100) : 0;
+  const accuracy = answeredTotal > 0 ? Math.round((correctTotal / answeredTotal) * 100) : 0;
   const poolSize = picked.reduce((n, id) => n + bank.byDomain[id].length, 0);
   const examShort = Math.max(0, EXAM_LENGTH - bank.size);
   const sliderMax = Math.max(10, bank.size);
@@ -28,27 +28,6 @@ export default function Welcome() {
     () => (history.length ? history[0].summary.rows.filter((r) => r.answered && !r.correct).map((r) => r.uid) : []),
     [history]
   );
-
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return undefined;
-    let frame = 0;
-    const onScroll = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const node = heroRef.current;
-        if (!node) return;
-        const y = Math.min(window.scrollY, 420);
-        node.style.setProperty('--drift', (y * 0.06).toFixed(2) + 'px');
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
 
   const launch = (config) => {
     const test = createTest({ bank, ...config });
@@ -124,15 +103,34 @@ export default function Welcome() {
                 Start the 501-question mock exam
                 <IconArrowRight width={18} height={18} />
               </button>
-              <Link className="btn btn-ghost btn-lg" to="/bank">Browse the bank</Link>
+              <Link className="btn btn-ghost btn-lg" to="/bank">
+                Browse the bank
+                <IconArrowRight width={18} height={18} />
+              </Link>
             </div>
           </Reveal>
           <Reveal delay={150}>
             <div className="hero-stats">
-              <Stat label="Unique questions" value={ready ? bank.size.toLocaleString() : '...'} sub={bank.duplicates + ' duplicates merged'} />
-              <Stat label="Answers logged" value={answeredTotal.toLocaleString()} sub={answeredTotal ? accuracy + '% accuracy' : 'no attempts yet'} />
-              <Stat label="Tests completed" value={history.length} sub={history.length ? 'last ' + formatDuration(history[0].summary.durationMs) : 'start your first'} />
-              <Stat label="Bookmarked" value={bookmarks.length} sub="for targeted drills" />
+              <Stat 
+                label="Unique questions" 
+                value={ready ? bank.size.toLocaleString() : '...'} 
+                sub={bank.duplicates > 0 ? bank.duplicates + ' duplicates merged' : 'Bank ready'} 
+              />
+              <Stat 
+                label="Answers logged" 
+                value={answeredTotal.toLocaleString()} 
+                sub={answeredTotal > 0 ? accuracy + '% accuracy' : 'No data yet'} 
+              />
+              <Stat 
+                label="Tests completed" 
+                value={history.length} 
+                sub={history.length > 0 ? 'Last ' + formatDuration(history[0].summary.durationMs) : 'No history yet'} 
+              />
+              <Stat 
+                label="Bookmarked" 
+                value={bookmarks.length} 
+                sub={bookmarks.length > 0 ? 'for targeted drills' : 'None yet'} 
+              />
             </div>
           </Reveal>
         </div>
@@ -154,22 +152,24 @@ export default function Welcome() {
                     <div className="mix-track">
                       <span className="mix-fill" style={{ width: Math.min(100, (have / Math.max(1, want)) * 100) + '%' }} />
                     </div>
-                    <span className="mix-note">{d.note}, {have} in bank</span>
+                    <span className="mix-note">{d.band}, {have} in bank</span>
                   </li>
                 );
               })}
             </ul>
             {examShort > 0 ? (
-              <div className="panel-alert">
+              <div className="panel-alert" style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '12px 14px', borderRadius: 'var(--r-sm)', fontSize: '13px', background: 'color-mix(in srgb, var(--warn) 12%, var(--surface))', border: '1px solid color-mix(in srgb, var(--warn) 36%, transparent)' }}>
                 <strong>{examShort} questions short of 501.</strong>
                 <span>
                   The exam runs on everything currently in <code>src/questions.json</code>. Paste more question text on the
                   data page to close the gap, and every new item joins the next shuffle.
                 </span>
-                <Link className="btn btn-mini" to="/import">Open the data page</Link>
+                <Link className="btn btn-mini" to="/import" style={{ alignSelf: 'flex-start', marginTop: '4px' }}>Open the data page</Link>
               </div>
             ) : (
-              <div className="panel-ok">Full 501 available. Every start reshuffles questions and options.</div>
+              <div className="panel-ok" style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: '13px', background: 'color-mix(in srgb, var(--ok) 12%, var(--surface))', border: '1px solid color-mix(in srgb, var(--ok) 34%, transparent)' }}>
+                Full 501 available. Every start reshuffles questions and options.
+              </div>
             )}
           </aside>
         </Reveal>
@@ -229,8 +229,8 @@ export default function Welcome() {
         <Reveal delay={80}>
           <div className="builder">
             <div className="builder-col">
-              <label className="field">
-                <span className="field-label">Length <b>{Math.min(sliderValue, Math.max(1, poolSize))}</b></span>
+              <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span className="field-label" style={{ fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', display: 'flex', justifyContent: 'space-between' }}>Length <b style={{ fontFamily: 'var(--font-mono)', color: 'var(--orange)', fontSize: '14px' }}>{Math.min(sliderValue, Math.max(1, poolSize))}</b></span>
                 <input
                   type="range"
                   min={5}
@@ -238,13 +238,14 @@ export default function Welcome() {
                   step={5}
                   value={sliderValue}
                   onChange={(e) => setLength(Number(e.target.value))}
+                  style={{ width: '100%', height: '8px', borderRadius: '5px', background: 'var(--track)', outline: 'none', appearance: 'none' }}
                 />
-                <span className="field-hint">{poolSize} questions match the selected topics.</span>
+                <span className="field-hint" style={{ fontSize: '12px', color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>{poolSize} questions match the selected topics.</span>
               </label>
 
-              <label className="field">
-                <span className="field-label">Clock</span>
-                <select value={timer} onChange={(e) => setTimer(Number(e.target.value))}>
+              <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span className="field-label" style={{ fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Clock</span>
+                <select value={timer} onChange={(e) => setTimer(Number(e.target.value))} style={{ background: 'var(--surface-2)', border: '1px solid var(--line-2)', borderRadius: 'var(--r-sm)', padding: '10px 12px', width: '100%', cursor: 'pointer' }}>
                   <option value={0}>Untimed practice</option>
                   <option value={15}>15 minutes</option>
                   <option value={30}>30 minutes</option>
@@ -252,12 +253,12 @@ export default function Welcome() {
                   <option value={60}>60 minutes</option>
                   <option value={120}>120 minutes</option>
                 </select>
-                <span className="field-hint"><IconClock width={14} height={14} /> The test submits itself when the clock reaches zero.</span>
+                <span className="field-hint" style={{ fontSize: '12px', color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><IconClock width={14} height={14} /> The test submits itself when the clock reaches zero.</span>
               </label>
             </div>
 
             <div className="builder-col">
-              <span className="field-label">Topics</span>
+              <span className="field-label" style={{ fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Topics</span>
               <div className="pick-grid">
                 {DOMAINS.map((d) => (
                   <button
@@ -305,9 +306,9 @@ export default function Welcome() {
               onClick={() => launch({ mode: 'practice', uids: weak, count: weak.length, title: 'Weak spot drill', shuffleOptions: true, instantFeedback: true })}
               disabled={!weak.length}
             >
-              <IconTarget />
+              <IconTarget width={18} height={18} />
               <strong>Weak spot drill</strong>
-              <span>{weak.length ? weak.length + ' questions you keep missing' : 'Answer questions to unlock this drill'}</span>
+              <span>{weak.length > 0 ? weak.length + ' questions you keep missing' : 'Answer questions to unlock this drill'}</span>
             </button>
           </Reveal>
           <Reveal delay={70}>
@@ -317,9 +318,9 @@ export default function Welcome() {
               onClick={() => launch({ mode: 'practice', uids: bookmarks, count: bookmarks.length, title: 'Bookmarked drill', shuffleOptions: true, instantFeedback: true })}
               disabled={!bookmarks.length}
             >
-              <IconBookmark />
+              <IconBookmark width={18} height={18} />
               <strong>Bookmarked drill</strong>
-              <span>{bookmarks.length ? bookmarks.length + ' saved questions' : 'Bookmark questions during a test'}</span>
+              <span>{bookmarks.length > 0 ? bookmarks.length + ' saved questions' : 'Bookmark questions during a test'}</span>
             </button>
           </Reveal>
           <Reveal delay={140}>
@@ -329,9 +330,9 @@ export default function Welcome() {
               onClick={() => launch({ mode: 'practice', uids: lastMistakes, count: lastMistakes.length, title: 'Retry last mistakes', shuffleOptions: true, instantFeedback: true })}
               disabled={!lastMistakes.length}
             >
-              <IconFlag />
+              <IconFlag width={18} height={18} />
               <strong>Retry last mistakes</strong>
-              <span>{lastMistakes.length ? lastMistakes.length + ' from your last test' : 'Finish a test to unlock'}</span>
+              <span>{lastMistakes.length > 0 ? lastMistakes.length + ' from your last test' : 'Finish a test to unlock'}</span>
             </button>
           </Reveal>
         </div>
