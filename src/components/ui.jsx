@@ -1,0 +1,120 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { DOMAIN_BY_ID } from '../data/domains';
+
+export function Reveal({ children, delay = 0, className = '' }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setShown(true); return undefined; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { setShown(true); io.disconnect(); } });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    io.observe(node);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={'reveal ' + (shown ? 'is-in ' : '') + className} style={{ transitionDelay: delay + 'ms' }}>
+      {children}
+    </div>
+  );
+}
+
+export function Stat({ label, value, sub, tone }) {
+  return (
+    <div className={'stat' + (tone ? ' stat-' + tone : '')}>
+      <span className="stat-label">{label}</span>
+      <span className="stat-value">{value}</span>
+      {sub ? <span className="stat-sub">{sub}</span> : null}
+    </div>
+  );
+}
+
+export function DomainChip({ id, small }) {
+  const d = DOMAIN_BY_ID[id];
+  if (!d) return null;
+  return (
+    <span className={'chip' + (small ? ' chip-sm' : '')} style={{ '--chip': d.hex }}>
+      <i className="chip-dot" />
+      {d.short}
+    </span>
+  );
+}
+
+export function DomainBar({ id, accuracy, coverage, attempts, compact }) {
+  const d = DOMAIN_BY_ID[id];
+  const pct = Math.round((accuracy || 0) * 100);
+  const cov = Math.round((coverage || 0) * 100);
+  return (
+    <div className={'dbar' + (compact ? ' dbar-compact' : '')} style={{ '--hue': d.hex }}>
+      <div className="dbar-head">
+        <span className="dbar-name">{d.short}</span>
+        <span className="dbar-num">{attempts ? pct + '%' : 'no data'}</span>
+      </div>
+      <div className="dbar-track" role="img" aria-label={d.short + ' accuracy ' + pct + ' percent, coverage ' + cov + ' percent'}>
+        <span className="dbar-cov" style={{ width: cov + '%' }} />
+        <span className="dbar-fill" style={{ width: pct + '%' }} />
+      </div>
+      {!compact ? <div className="dbar-foot">{attempts} answers logged · {cov}% of the topic seen</div> : null}
+    </div>
+  );
+}
+
+export function Sparkline({ points, width = 260, height = 56 }) {
+  if (!points || points.length < 2) {
+    return <div className="spark-empty">Complete two tests to plot your accuracy trend.</div>;
+  }
+  const max = 100;
+  const step = width / (points.length - 1);
+  const coords = points.map((p, i) => [i * step, height - (p / max) * (height - 8) - 4]);
+  const line = coords.map((c, i) => (i ? 'L' : 'M') + c[0].toFixed(1) + ' ' + c[1].toFixed(1)).join(' ');
+  const area = line + ' L' + width + ' ' + height + ' L0 ' + height + ' Z';
+  return (
+    <svg className="spark" viewBox={'0 0 ' + width + ' ' + height} width="100%" height={height} role="img" aria-label="Accuracy trend">
+      <defs>
+        <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.34" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#sparkFill)" />
+      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {coords.map((c, i) => <circle key={i} cx={c[0]} cy={c[1]} r="2.6" fill="var(--surface)" stroke="var(--accent)" strokeWidth="1.6" />)}
+    </svg>
+  );
+}
+
+export function Toggle({ checked, onChange, label, hint, id }) {
+  return (
+    <label className="toggle" htmlFor={id}>
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="toggle-track"><span className="toggle-knob" /></span>
+      <span className="toggle-copy">
+        <span className="toggle-label">{label}</span>
+        {hint ? <span className="toggle-hint">{hint}</span> : null}
+      </span>
+    </label>
+  );
+}
+
+export function Empty({ title, body, action }) {
+  return (
+    <div className="empty">
+      <h3>{title}</h3>
+      <p>{body}</p>
+      {action}
+    </div>
+  );
+}
+
+export function useToast() {
+  const [toast, setToast] = useState(null);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
+  const node = toast ? <div className={'toast toast-' + (toast.tone || 'info')} role="status">{toast.message}</div> : null;
+  return [node, setToast];
+}
