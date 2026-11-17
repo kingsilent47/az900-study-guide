@@ -19,7 +19,7 @@ export default function Dashboard() {
   const time = useMemo(() => history.reduce((n, h) => n + (h.summary.durationMs || 0), 0), [history]);
   const trend = useMemo(() => history.slice(0, 10).map((h) => h.summary.percent).reverse(), [history]);
   const streak = studyStreak(history);
-  const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
+  const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
 
   const drill = (uids, title) => {
     if (!uids.length) return;
@@ -29,7 +29,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="page dash">
+    <div className="page">
       <header className="page-head">
         <div>
           <span className="eyebrow">Progress</span>
@@ -51,13 +51,30 @@ export default function Dashboard() {
       </header>
 
       <div className="dash-stats">
-        <Stat label="Overall accuracy" value={answered ? accuracy + '%' : 'no data'} sub={correct + ' of ' + answered + ' answers'} tone={accuracy >= 70 ? 'ok' : answered ? 'no' : undefined} />
-        <Stat label="Bank coverage" value={Math.round((seen / Math.max(1, bank.size)) * 100) + '%'} sub={seen + ' of ' + bank.size + ' questions seen'} />
-        <Stat label="Study streak" value={streak + (streak === 1 ? ' day' : ' days')} sub={history.length + ' tests completed'} />
-        <Stat label="Time on task" value={time ? formatDuration(time) : '0 min'} sub="from completed tests" />
+        <Stat
+          label="Overall accuracy"
+          value={answered > 0 ? accuracy + '%' : '—'}
+          sub={answered > 0 ? correct + ' of ' + answered + ' answers' : 'No data yet'}
+          tone={answered > 0 && accuracy >= 70 ? 'ok' : answered > 0 && accuracy < 70 ? 'no' : undefined}
+        />
+        <Stat
+          label="Bank coverage"
+          value={seen > 0 ? Math.round((seen / Math.max(1, bank.size)) * 100) + '%' : '—'}
+          sub={seen > 0 ? seen + ' of ' + bank.size + ' questions seen' : 'No data yet'}
+        />
+        <Stat
+          label="Study streak"
+          value={streak > 0 ? streak + (streak === 1 ? ' day' : ' days') : '—'}
+          sub={history.length > 0 ? history.length + ' tests completed' : 'No streak yet'}
+        />
+        <Stat
+          label="Time on task"
+          value={time > 0 ? formatDuration(time) : '—'}
+          sub={time > 0 ? 'from completed tests' : 'No data yet'}
+        />
       </div>
 
-      <section className="section dash-two">
+      <section className="section two-col">
         <Reveal>
           <div className="card">
             <div className="card-head"><h2>Topic mastery</h2><span>accuracy over coverage</span></div>
@@ -73,10 +90,10 @@ export default function Dashboard() {
             <div className="card-head"><h2>Accuracy trend</h2><span>last {trend.length} tests</span></div>
             <Sparkline points={trend} />
             <div className="trend-foot">
-              {history.length ? (
+              {history.length > 0 ? (
                 <>
                   <span>Latest {history[0].summary.percent}%</span>
-                  <span>Best {Math.max.apply(null, history.map((h) => h.summary.percent))}%</span>
+                  <span>Best {Math.max(...history.map((h) => h.summary.percent))}%</span>
                 </>
               ) : <span>Finish a test to start the trend line.</span>}
             </div>
@@ -88,13 +105,13 @@ export default function Dashboard() {
         <div className="section-head">
           <h2>Weak spots</h2>
           <p>Questions you answer correctly less than 75 percent of the time.</p>
-          {weak.length ? (
+          {weak.length > 0 ? (
             <button type="button" className="btn btn-primary btn-sm" onClick={() => drill(weak, 'Weak spot drill')}>
               Drill these {weak.length} <IconArrowRight width={16} height={16} />
             </button>
           ) : null}
         </div>
-        {weak.length ? (
+        {weak.length > 0 ? (
           <div className="weak-list">
             {weak.map((uid) => {
               const q = bank.byId.get(uid);
@@ -116,15 +133,15 @@ export default function Dashboard() {
 
       <section className="section">
         <div className="section-head"><h2>Test history</h2><p>Open any run to re-read its full breakdown.</p></div>
-        {history.length ? (
+        {history.length > 0 ? (
           <div className="history">
-            <div className="history-row history-head">
+            <div className="hrow hhead">
               <span>Test</span><span>Mode</span><span>Score</span><span>Time</span><span>Date</span><span />
             </div>
             {history.map((h) => (
-              <div key={h.id} className="history-row">
+              <div key={h.id} className="hrow">
                 <span className="h-title">{h.title}</span>
-                <span className="h-mode">{h.mode === 'exam' ? 'Exam' : 'Practice'}</span>
+                <span>{h.mode === 'exam' ? 'Exam' : 'Practice'}</span>
                 <span className={'h-score ' + (h.summary.scaled >= 700 ? 'ok' : 'no')}>{h.summary.percent}%</span>
                 <span>{formatDuration(h.summary.durationMs)}</span>
                 <span className="h-date">{new Date(h.finishedAt).toLocaleDateString()}</span>
