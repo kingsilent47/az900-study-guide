@@ -1,16 +1,14 @@
 import React from 'react';
 
-function ProgressBar({ currentIndex, totalQuestions }) {
-  const progress = ((currentIndex + 1) / totalQuestions) * 100;
-
+export default function ProgressBar({ value = 0, total = 1, label }) {
+  const pct = total > 0 ? Math.min(100, Math.max(0, (value / total) * 100)) : 0;
   return (
-    <div className="progress-section">
-      <div className="progress-badge">{Math.round(progress)}%</div>
+    <div className="progress">
       <div className="progress-track">
-        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+        <span className="progress-fill" style={{ width: pct + '%' }} />
+        <span className="progress-badge" style={{ left: pct + '%' }}>{Math.round(pct)}%</span>
       </div>
+      {label ? <div className="progress-label">{label}</div> : null}
     </div>
   );
 }
-
-export default ProgressBar;
