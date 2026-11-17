@@ -1,24 +1,62 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
-import { useApp } from '../state/AppState';
 import { DOMAIN_BY_ID } from '../data/domains';
 
-// --- ICONS (PascalCase keys to satisfy ESLint) ---
-const S = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' };
+// --- ICONS ---
+const S = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' };
 export const Icon = {
   Cloud: (p) => (<svg {...S} {...p}><path d="M6.5 18h11a3.5 3.5 0 0 0 .3-7 5.5 5.5 0 0 0-10.6-1.4A3.8 3.8 0 0 0 6.5 18Z" /></svg>),
   Grid: (p) => (<svg {...S} {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>),
   Chart: (p) => (<svg {...S} {...p}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>),
   Layers: (p) => (<svg {...S} {...p}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>),
-  Sun: (p) => (<svg {...S} {...p}><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" /></svg>),
-  Moon: (p) => (<svg {...S} {...p}><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>),
+  Sun: (p) => (<svg {...S} {...p}><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>),
+  Moon: (p) => (<svg {...S} {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>),
   Undo: (p) => (<svg {...S} {...p}><path d="M4 9h11a5 5 0 0 1 0 10h-6" /><path d="m4 9 4-4M4 9l4 4" /></svg>),
-  Cross: (p) => (<svg {...S} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>)
+  Cross: (p) => (<svg {...S} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>),
+  Download: (p) => (<svg {...S} {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>),
+  Trash: (p) => (<svg {...S} {...p}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>),
+  ArrowRight: (p) => (<svg {...S} {...p}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>),
+  Shuffle: (p) => (<svg {...S} {...p}><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>),
+  Target: (p) => (<svg {...S} {...p}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>),
+  Clock: (p) => (<svg {...S} {...p}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>),
+  Flag: (p) => (<svg {...S} {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>),
+  Bookmark: (p) => (<svg {...S} {...p}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>)
 };
+
+// --- THEME TOGGLE ---
+export function ThemeToggle() {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 
+             (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  return (
+    <button 
+      type="button" 
+      className="icon-btn" 
+      onClick={toggleTheme}
+      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+    >
+      {theme === 'light' ? <Icon.Moon /> : <Icon.Sun />}
+    </button>
+  );
+}
 
 // --- EXISTING COMPONENTS ---
 export function Reveal({ children, delay = 0, className = '' }) {
-  const ref = useRef(null);
+  const ref = React.useRef(null);
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const node = ref.current;
@@ -90,13 +128,13 @@ export function Sparkline({ points, width = 260, height = 56 }) {
     <svg className="spark" viewBox={'0 0 ' + width + ' ' + height} width="100%" height={height} role="img" aria-label="Accuracy trend">
       <defs>
         <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.34" />
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.34" />
+          <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={area} fill="url(#sparkFill)" />
-      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      {coords.map((c, i) => <circle key={i} cx={c[0]} cy={c[1]} r="2.6" fill="var(--surface)" stroke="var(--accent)" strokeWidth="1.6" />)}
+      <path d={line} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {coords.map((c, i) => <circle key={i} cx={c[0]} cy={c[1]} r="2.6" fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="1.6" />)}
     </svg>
   );
 }
@@ -143,7 +181,6 @@ const LINKS = [
 ];
 
 export function Shell({ children }) {
-  const { bank, settings, setSettings, notice, setNotice } = useApp();
   const loc = useLocation();
   return (
     <div className="app">
@@ -165,10 +202,7 @@ export function Shell({ children }) {
             })}
           </nav>
           <div className="shell-right">
-            <span className="shell-count"><i className="pulse" />{bank.size.toLocaleString()} questions</span>
-            <button type="button" className="icon-btn" onClick={() => setSettings((s) => ({ ...s, theme: s.theme === 'night' ? 'day' : 'night' }))} aria-label={settings.theme === 'night' ? 'Switch to day theme' : 'Switch to night theme'}>
-              {settings.theme === 'night' ? <Icon.Sun /> : <Icon.Moon />}
-            </button>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -186,13 +220,6 @@ export function Shell({ children }) {
           </nav>
         </footer>
       )}
-      {notice ? (
-        <div className={'notice notice-' + (notice.tone || 'info')} role="status">
-          <span>{notice.message}</span>
-          {notice.undo ? <button type="button" className="btn btn-mini" onClick={notice.undo}><Icon.Undo width={14} height={14} /> Undo</button> : null}
-          <button type="button" className="icon-btn tiny" onClick={() => setNotice(null)} aria-label="Dismiss"><Icon.Cross width={14} height={14} /></button>
-        </div>
-      ) : null}
     </div>
   );
 }
