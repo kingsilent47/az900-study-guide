@@ -7,8 +7,22 @@ import { domainMastery, weakUids } from '../../lib/store';
 import { Reveal, Stat, DomainBar, Toggle } from '../../components/ui';
 import { IconArrowRight, IconShuffle, IconTarget, IconClock, IconFlag, IconBookmark } from '../../components/Icons';
 
+function readAccuracy() {
+  try {
+    const raw = window.localStorage.getItem('az900-progress');
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (!p || typeof p.totalAnswered !== 'number' || p.totalAnswered < 1) return null;
+    const correct = typeof p.correct === 'number' ? p.correct : 0;
+    return Math.round((correct / p.totalAnswered) * 100);
+  } catch (err) {
+    return null;
+  }
+}
+
 export default function Welcome() {
   const navigate = useNavigate();
+  const accuracy = readAccuracy();
   const { bank, ready, settings, setSettings, stats, history, bookmarks, session, setSession } = useApp();
   const [length, setLength] = useState(settings.practiceLength || 40);
   const [picked, setPicked] = useState(DOMAINS.map((d) => d.id));
