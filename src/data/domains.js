@@ -53,7 +53,7 @@ export const DOMAINS = [
     label: 'Describe security, privacy, and compliance',
     short: 'Security and compliance',
     weight: 0.18,
-    hex: '#ff4d9d',
+    hex: '#ff5a5f',
     note: 'Part of the 30-35% governance domain',
     blurb: 'Entra ID, authentication, Defender for Cloud, Sentinel, encryption, trust and compliance.',
     aliases: ['security', 'security & compliance', 'security and compliance',
