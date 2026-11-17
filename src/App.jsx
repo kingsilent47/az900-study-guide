@@ -1,12 +1,11 @@
 import React from 'react';
+import Shell from './components/Shell';
 import AppRoutes from './routes';
 
-function App() {
+export default function App() {
   return (
-    <div className="app-container">
+    <Shell>
       <AppRoutes />
-    </div>
+    </Shell>
   );
 }
-
-export default App;
