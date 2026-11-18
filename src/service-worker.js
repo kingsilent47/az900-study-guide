@@ -1,10 +1,5 @@
 /* eslint-disable no-restricted-globals */
 
-// This service worker can be customized!
-// See https://developers.google.com/web/tools/workbox/modules
-// for the list of available Workbox modules, or add any other
-// code you'd like.
-
 const CACHE_NAME = 'az900-offline-v1';
 
 // self.__WB_MANIFEST is replaced at build time by Workbox with the list of files to precache
@@ -30,11 +25,10 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
+        // FIX: Filter first, then map. This avoids the "no return value" error.
+        cacheNames
+          .filter((cacheName) => cacheWhitelist.indexOf(cacheName) === -1)
+          .map((cacheName) => caches.delete(cacheName))
       );
     })
   );
