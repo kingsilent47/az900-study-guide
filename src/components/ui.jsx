@@ -182,6 +182,21 @@ const LINKS = [
 
 export function Shell({ children }) {
   const loc = useLocation();
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   return (
     <div className="app">
       <div className="bg" aria-hidden="true"><span className="bg-mesh" /><span className="bg-grain" /></div>
@@ -202,6 +217,7 @@ export function Shell({ children }) {
             })}
           </nav>
           <div className="shell-right">
+            {isOffline && <span className="offline-badge">Offline</span>}
             <ThemeToggle />
           </div>
         </div>
