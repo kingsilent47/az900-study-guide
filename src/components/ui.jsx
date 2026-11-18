@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import { DOMAIN_BY_ID } from '../data/domains';
 
@@ -56,7 +56,7 @@ export function ThemeToggle() {
 
 // --- EXISTING COMPONENTS ---
 export function Reveal({ children, delay = 0, className = '' }) {
-  const ref = React.useRef(null);
+  const ref = useRef(null);
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const node = ref.current;
@@ -206,12 +206,17 @@ export function Shell({ children }) {
           </div>
         </div>
       </header>
+      
       <main className="main">{children}</main>
+      
       {loc.pathname !== '/quiz' && (
         <footer className="legal-bar">
           <p className="legal-bar-note">
             AZ-900 Trainer is an independent revision tool. Microsoft, Microsoft Azure and AZ-900 are
             trademarks of Microsoft Corporation. This site is not affiliated with or endorsed by Microsoft.
+            <span style={{ display: 'block', marginTop: '8px', opacity: 0.8 }}>
+              Questions are study material, not live exam content. Weighting follows the published AZ-900 objective split.
+            </span>
           </p>
           <nav className="legal-bar-nav" aria-label="Legal">
             <Link to="/privacy">Privacy policy</Link>
