@@ -8,6 +8,7 @@ import Bank from '../pages/Bank';
 import Import from '../pages/Import';
 import Privacy from '../pages/Privacy';
 import Terms from '../pages/Terms';
+import NotFound from '../pages/NotFound';
 
 export default function AppRoutes() {
   return (
@@ -21,7 +22,7 @@ export default function AppRoutes() {
       <Route path="/import" element={<Import />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
