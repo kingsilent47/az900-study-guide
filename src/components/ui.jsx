@@ -25,14 +25,19 @@ export const Icon = {
 
 // --- THEME TOGGLE ---
 export function ThemeToggle() {
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') || 
-             (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    }
-    return 'light';
-  });
+  const [theme, setTheme] = useState('light');
 
+  // Check localStorage and system preference on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+    
+    setTheme(initialTheme);
+    document.documentElement.setAttribute('data-theme', initialTheme);
+  }, []);
+
+  // Apply theme whenever it changes
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -48,6 +53,7 @@ export function ThemeToggle() {
       className="icon-btn" 
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      style={{ cursor: 'pointer' }}
     >
       {theme === 'light' ? <Icon.Moon /> : <Icon.Sun />}
     </button>
