@@ -638,3 +638,27 @@ html { font-size: 16px; }
 @media print {
   .shell, .legal-bar, .qz-actions, .qz-keys { display: none; }
 }
+
+/* --- 404 Page --- */
+.not-found-page {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: calc(100vh - 200px);
+  padding: 40px 24px;
+}
+.not-found-content {
+  max-width: 640px;
+}
+.not-found-content h1 {
+  font-size: 2.5rem;
+  margin-top: 12px;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+}
+.not-found-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
