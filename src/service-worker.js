@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-globals */
+
 const CACHE_NAME = 'az900-offline-v1';
 const urlsToCache = [
   '/',
