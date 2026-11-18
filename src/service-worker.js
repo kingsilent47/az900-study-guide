@@ -1,28 +1,49 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = 'az900-offline-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/questions.json',
-  '/manifest.json'
-];
+// This service worker can be customized!
+// See https://developers.google.com/web/tools/workbox/modules
+// for the list of available Workbox modules, or add any other
+// code you'd like.
 
-// Install event: Cache core files
+const CACHE_NAME = 'az900-offline-v1';
+
+// self.__WB_MANIFEST is replaced at build time by Workbox with the list of files to precache
+const precacheManifest = [].concat(self.__WB_MANIFEST || []);
+
+// Install event: cache the manifest files
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((err) => console.log('Cache install failed', err))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(
+        precacheManifest
+          .map((entry) => entry.url)
+          .filter((url) => url && !url.includes('index.html'))
+      );
+    }).catch((err) => console.log('Cache install failed', err))
   );
+  self.skipWaiting();
 });
 
-// Fetch event: Serve from cache, update cache in background
+// Activate event: clean up old caches
+self.addEventListener('activate', (event) => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch event: cache-first for app shell, network-first for questions.json
 self.addEventListener('fetch', (event) => {
-  // Special handling for questions.json to ensure it stays fresh when online
+  // Network-first for questions.json so it stays fresh when online
   if (event.request.url.includes('questions.json')) {
     event.respondWith(
       fetch(event.request)
@@ -38,32 +59,17 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => caches.match(event.request))
     );
-  } else {
-    // Cache-first strategy for everything else (app shell, CSS, JS)
-    event.respondWith(
-      caches.match(event.request)
-        .then((response) => {
-          if (response) {
-            return response;
-          }
-          return fetch(event.request);
-        })
-    );
+    return;
   }
-});
 
-// Activate event: Clean up old caches
-self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+  // Cache-first for everything else (app shell, CSS, JS, images)
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      })
   );
 });
