@@ -532,8 +532,17 @@ html { font-size: 16px; }
   .shell-inner { flex-wrap: wrap; gap: 8px; }
   .brand-copy small { display: none; }
   .shell-count { display: none; }
-  .shell-nav { order: 3; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .shell-link { padding: 8px 12px; font-size: 0.9rem; }
+  .shell-nav { 
+  order: 3; 
+  width: 100%; 
+  display: flex; /* Make it visible */
+  overflow-x: auto; /* Allow horizontal scrolling */
+  padding-bottom: 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--color-border);
+  gap: 8px;
+}
+.shell-link { white-space: nowrap; } /* Prevent text wrapping */
 
   .main { padding: 16px 12px 80px; }
   .page { gap: 24px; }
