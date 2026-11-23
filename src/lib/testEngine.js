@@ -1,6 +1,6 @@
 import { DOMAINS } from '../data/domains';
 
-export const EXAM_LENGTH = 501;
+export const EXAM_LENGTH = 60;
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
