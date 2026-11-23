@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { getDomainByTopic } from '../../data/domains';
 import ProgressBar from '../../components/ProgressBar';
 import bank from '../../questions.json';
 
@@ -87,15 +88,24 @@ function buildOrder(topic, seed, cap) {
   const rand = rng(seed);
   const seen = new Set();
   const pool = [];
+  
   (Array.isArray(bank) ? bank : []).forEach((raw) => {
     const q = usable(raw);
     if (!q) return;
+    
     const key = q.question.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 160);
     if (seen.has(key)) return;
     seen.add(key);
-    if (topic && q.topic !== topic) return;
+    
+    // FIX: Use the helper to match the JSON topic string to the domain ID
+    if (topic) {
+      const qDomain = getDomainByTopic(q.topic);
+      if (qDomain !== topic) return; 
+    }
+    
     pool.push(q);
   });
+  
   const picked = shuffle(pool, rand).slice(0, cap ? Math.min(cap, pool.length) : pool.length);
   return picked.map((q) => {
     const order = shuffle(q.options.map((_, i) => i), rand);
