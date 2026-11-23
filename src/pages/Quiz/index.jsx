@@ -7,7 +7,7 @@ import bank from '../../questions.json';
 const SESSION_KEY = 'az900-session-v3';
 const LEGACY_KEY = 'az900-progress';
 const STATS_KEY = 'az900.v2.stats';
-const EXAM_CAP = 501;
+const EXAM_CAP = 60;
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 function readJson(key, fallback) {
