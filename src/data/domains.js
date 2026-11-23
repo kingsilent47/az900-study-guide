@@ -72,6 +72,18 @@ export const DOMAIN_BY_ID = DOMAINS.reduce((acc, d) => { acc[d.id] = d; return a
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 
+export function getDomainByTopic(topicString) {
+  if (!topicString) return 'arch'; // Default fallback
+  const normalized = topicString.toLowerCase().trim();
+  
+  const domain = DOMAINS.find(d => 
+    d.label.toLowerCase() === normalized || 
+    d.aliases.some(alias => normalized.includes(alias.toLowerCase()))
+  );
+  
+  return domain ? domain.id : 'arch';
+}
+
 export function domainFromLabel(label) {
   const n = norm(label);
   if (!n) return null;
