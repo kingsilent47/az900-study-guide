@@ -55,16 +55,9 @@ export default function Welcome() {
   });
 
   const startTopic = (id) => {
-    const d = DOMAINS.find((x) => x.id === id);
-    launch({
-      mode: 'practice',
-      domainIds: [id],
-      count: bank.byDomain[id].length,
-      shuffleOptions: settings.shuffleOptions,
-      instantFeedback: settings.instantFeedback,
-      timerMinutes: 0,
-      title: d.short + ' test'
-    });
+    // Navigate directly to the quiz with the topic ID in the URL
+    // The Quiz component will read this param and filter the questions
+    navigate('/quiz/' + id);
   };
 
   const startCustom = () => {
