@@ -1,5 +1,5 @@
 import React from 'react';
-import Shell from './components/Shell';
+import Shell from './components/ui';
 import AppRoutes from './routes';
 
 export default function App() {
