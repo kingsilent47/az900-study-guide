@@ -90,7 +90,7 @@ export default function Welcome() {
         <div className="hero-copy">
           <Reveal>
             <span className="eyebrow">Microsoft Azure Fundamentals</span>
-            <h1>Train every AZ-900 objective, then sit the full 501.</h1>
+            <h1>Train every AZ-900 objective, then sit the full 60.</h1>
             <p className="lede">
               Four topic tests built from your own bank, a weighted mock exam that mirrors the published objective split,
               and a fresh shuffle of questions and answer options every time you start.
@@ -100,7 +100,7 @@ export default function Welcome() {
             <div className="hero-actions">
               <button type="button" className="btn btn-primary btn-lg" onClick={startExam} disabled={!ready || !bank.size}>
                 <IconTarget width={18} height={18} />
-                Start the 501-question mock exam
+                Start the 60-question mock exam
                 <IconArrowRight width={18} height={18} />
               </button>
               <Link className="btn btn-ghost btn-lg" to="/bank">
@@ -159,7 +159,7 @@ export default function Welcome() {
             </ul>
             {examShort > 0 ? (
               <div className="panel-alert" style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '12px 14px', borderRadius: 'var(--r-sm)', fontSize: '13px', background: 'color-mix(in srgb, var(--warn) 12%, var(--surface))', border: '1px solid color-mix(in srgb, var(--warn) 36%, transparent)' }}>
-                <strong>{examShort} questions short of 501.</strong>
+                <strong>{examShort} questions short of 60.</strong>
                 <span>
                   The exam runs on everything currently in <code>src/questions.json</code>. Paste more question text on the
                   data page to close the gap, and every new item joins the next shuffle.
@@ -168,7 +168,7 @@ export default function Welcome() {
               </div>
             ) : (
               <div className="panel-ok" style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: '13px', background: 'color-mix(in srgb, var(--ok) 12%, var(--surface))', border: '1px solid color-mix(in srgb, var(--ok) 34%, transparent)' }}>
-                Full 501 available. Every start reshuffles questions and options.
+                Full 60 available. Every start reshuffles questions and options.
               </div>
             )}
           </aside>
