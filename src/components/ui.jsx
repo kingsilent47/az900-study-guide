@@ -5,7 +5,12 @@ import { DOMAIN_BY_ID } from '../data/domains';
 // --- ICONS ---
 const S = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' };
 export const Icon = {
-  Cloud: (p) => (<svg {...S} {...p}><path d="M6.5 18h11a3.5 3.5 0 0 0 .3-7 5.5 5.5 0 0 0-10.6-1.4A3.8 3.8 0 0 0 6.5 18Z" /></svg>),
+  Cloud: (p) => (
+  <svg {...S} {...p} viewBox="0 0 100 100">
+    <path d="M 20 65 C 20 45, 35 35, 45 35 C 55 15, 80 20, 80 45 C 90 45, 90 65, 80 65 Z" fill="currentColor" />
+    <text x="50" y="56" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="16" fill={p.fill || "currentColor"} textAnchor="middle" letterSpacing="-0.5">AZ-900</text>
+  </svg>
+  ),
   Grid: (p) => (<svg {...S} {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>),
   Chart: (p) => (<svg {...S} {...p}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>),
   Layers: (p) => (<svg {...S} {...p}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>),
